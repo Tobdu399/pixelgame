@@ -1,7 +1,6 @@
 import math
 import random
 import pathlib
-import time
 
 # Import pygame library without the version and welcome message
 import contextlib
@@ -35,7 +34,7 @@ menu_options         = {"Close": "white", "Restart": "white", "Quit": "white"}
 menu_highlight_color = "green"
 
 # Images
-background_img = pygame.image.load(f"{path}/pictures/grass.png").convert()
+background_img = pygame.image.load(f"{path}/pictures/display/grass.png").convert()
 
 gunmen        = []
 gunman_images = {
