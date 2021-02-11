@@ -11,7 +11,7 @@ path = str(pathlib.Path(__file__).resolve().parent)
 pygame.init()
 
 pygame.display.set_caption("Pixel Game")
-display = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+display = pygame.display.set_mode((0, 0), pygame.FULLSCREEN, pygame.FULLSCREEN)
 clock   = pygame.time.Clock()
 
 WIDTH, HEIGHT = pygame.display.get_surface().get_size()
@@ -164,6 +164,8 @@ class Gunman:
         h = player.y - self.y   # leg's height
 
         self.player_distance = math.sqrt((player.x - self.x) ** 2 + (player.y - self.y) ** 2)  # distance
+        # TODO: Give some kind of signal when the gunman is able to shoot the player
+
         # TODO: If the player is inside the enemy's danger zone, try to shoot the player
         #  if self.player_distance < self.danger_zone
 
@@ -203,7 +205,8 @@ class Gunman:
         current_image = pygame.transform.scale(self.image[0], self.image[1])
         gunman_rect = rotate_image(current_image, self.angle, self.x, self.y)[1]
 
-        if self.player_distance < self.danger_zone and gunman_rect.collidepoint(pygame.mouse.get_pos()):
+        # if self.player_distance < self.danger_zone and gunman_rect.collidepoint(pygame.mouse.get_pos()):
+        if gunman_rect.collidepoint(pygame.mouse.get_pos()):
             self.health -= 10
 
 
