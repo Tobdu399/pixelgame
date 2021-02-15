@@ -1,5 +1,6 @@
 # Import pygame library without the version and welcome message
 import contextlib
+
 with contextlib.redirect_stdout(None):
     import pygame
 
@@ -8,16 +9,17 @@ import pathlib
 path = str(pathlib.Path(__file__).resolve().parent)
 
 pygame.init()
+pygame.mixer.init(frequency=44100, size=-16, channels=1, buffer=2**12)
 
 display = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Pixel Game")
-clock   = pygame.time.Clock()
+clock = pygame.time.Clock()
 
 WIDTH, HEIGHT = pygame.display.get_surface().get_size()
-FPS           = 120
-GAME_RUNNING  = True
-MENU_OPEN     = False
-DEBUG_SCREEN  = False
+FPS = 120
+GAME_RUNNING = True
+MENU_OPEN = False
+DEBUG_SCREEN = False
 
 # Color and its definition
 color_list = {
@@ -29,19 +31,29 @@ color_list = {
 }
 
 # Menu option and it's color
-menu_options         = {"Close": "white", "Restart": "white", "Quit": "white"}
+menu_options = {"Close": "white", "Restart": "white", "Quit": "white"}
 menu_highlight_color = "green"
 
 # Images
 background_img = pygame.image.load(f"{path}/pictures/display/grass.png").convert()
 
-gunmen        = []
+gunmen = []
 gunman_images = {
-    "idle": (pygame.image.load(f"{path}/pictures/gunman/gunman.png"), (127, 76)),
+    "idle": (pygame.image.load(f"{path}/pictures/gunman/gunman_idle.png"), (140, 75)),
+
+    "shoot": [
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_shoot_0.png"), (140, 75)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_shoot_1.png"), (140, 75)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_shoot_2.png"), (140, 75)),
+    ],
+
+    "reload": [
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_idle.png"), (140, 76))
+    ]
 }
 
 player_images = {
-    "idle":  (pygame.image.load(f"{path}/pictures/player/player_idle.png"), (127, 76)),
+    "idle": (pygame.image.load(f"{path}/pictures/player/player_idle.png"), (127, 76)),
 
     "shoot": [
         (pygame.image.load(f"{path}/pictures/player/player_shoot_0.png"), (125, 75)),
@@ -69,17 +81,19 @@ player_images = {
 }
 
 # Sound Effects
-pistol_shoot  = pygame.mixer.Sound(f"{path}/sfx/pistol_shoot.mp3")
+pistol_shoot = pygame.mixer.Sound(f"{path}/sfx/pistol_shoot.mp3")
 pistol_reload = pygame.mixer.Sound(f"{path}/sfx/pistol_reload.mp3")
-button_hover  = pygame.mixer.Sound(f"{path}/sfx/button_hover.mp3")
-button_click  = pygame.mixer.Sound(f"{path}/sfx/button_click.mp3")
+rifle_shoot = pygame.mixer.Sound(f"{path}/sfx/rifle_shoot.mp3")
+button_hover = pygame.mixer.Sound(f"{path}/sfx/button_hover.mp3")
+button_click = pygame.mixer.Sound(f"{path}/sfx/button_click.mp3")
 
 pygame.mixer.music.load(f"{path}/music/music.mp3")
 
 # Set sounds' default volume
-pygame.mixer.music.set_volume(0.06)
+pygame.mixer.music.set_volume(0.05)
 
 pistol_shoot.set_volume(0.6)
 pistol_reload.set_volume(0.2)
+rifle_shoot.set_volume(0.8)
 button_hover.set_volume(0.2)
 button_click.set_volume(0.2)

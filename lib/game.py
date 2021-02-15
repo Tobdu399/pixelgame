@@ -4,18 +4,19 @@ from lib import misc
 from lib import slider
 
 # Sliders
-sfx_volume = slider.Slider(int(misc.WIDTH/4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 75, 200, "grey", "white", misc.pistol_shoot.get_volume(), 1)
-music_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 50, 200, "grey", "white", misc.pygame.mixer.music.get_volume(), 0.2)
+sfx_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 90, 200, "grey", misc.pistol_shoot.get_volume(), 1)
+music_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 50, 200, "grey", misc.pygame.mixer.music.get_volume(), 0.2)
 
 slider.sliders.append(sfx_volume)
 slider.sliders.append(music_volume)
+
+# TODO: Reloading!!
 
 
 class Player:
     def __init__(self, x, y, images):
         self.x = x
         self.y = y
-        self.steps  = 0
         self.images = images
         self.angle  = 0
 
@@ -75,26 +76,31 @@ class Player:
 
 
 class Gunman:
-    def __init__(self, x, y, danger_zone, image):
+    def __init__(self, x, y, danger_zone, images):
         self.x = x
         self.y = y
+        self.images = images
+        self.angle  = 0
+
         self.danger_zone     = danger_zone
-        self.angle           = 0
-        self.image           = image["idle"]
         self.health          = 100
         self.is_alive        = True
         self.player_distance = 0
 
+        self.current_image = self.images["idle"]
+        self.counter       = 0
+        self.frame         = 0
+
+        self.shooting      = False
+        self.reloading     = False
+
     def show(self):
         # Calculate the self.angle in which the gunman is positioned using argus tangent
-        w = player.x - self.x   # leg's misc.WIDTH
-        h = player.y - self.y   # leg's misc.HEIGHT
+        w = player.x - self.x
+        h = player.y - self.y
 
         self.player_distance = math.sqrt((player.x - self.x) ** 2 + (player.y - self.y) ** 2)  # distance
         # TODO: Give some kind of signal when the gunman is able to shoot the player
-
-        # TODO: If the player is inside the enemy's danger zone, try to shoot the player
-        #  if self.player_distance < self.danger_zone
 
         if w != 0 and not misc.MENU_OPEN:
             self.angle = math.degrees(math.atan(h / w))
@@ -109,15 +115,24 @@ class Gunman:
             else:
                 self.angle = 90
 
-        # Scale and rotate the gunman image
-        current_image = misc.pygame.transform.scale(self.image[0], self.image[1])
+        # Animation
+        if self.shooting or self.reloading and not misc.MENU_OPEN:
+            if self.counter % 5 == 0 and self.counter != 0:
+                self.frame += 1
+            self.counter += 1
+
+        self.shooting = self.animate(self.shooting, self.images["shoot"], self.images["idle"])
+        self.reloading = self.animate(self.reloading, self.images["reload"], self.images["idle"])
+
+        # Scale and rotate the player image
+        current_image = misc.pygame.transform.scale(self.current_image[0], self.current_image[1])
         rotated_img, rotated_img_rect = rotate_image(current_image, self.angle, self.x, self.y)
 
-        # misc.display the gunman if it is alive
+        # Display the gunman if it is alive
         if self.health > 0:
             misc.display.blit(rotated_img, rotated_img_rect.topleft)
 
-            # misc.display the health bar if the gunman doesn't have full health
+            # Display the health bar if the gunman doesn't have full health
             if self.health != 100:
                 health_bar_x = rotated_img_rect.x+(rotated_img_rect.width/2)-50
                 health_bar_y = rotated_img_rect.y-15
@@ -128,9 +143,19 @@ class Gunman:
         else:
             self.is_alive = False
 
+    def animate(self, busy, anim_images, idle_image):
+        if busy:
+            if self.frame >= len(anim_images):
+                self.frame = self.counter = 0
+                self.current_image = idle_image
+                return False
+            else:
+                self.current_image = anim_images[self.frame]
+                return True
+
     def hit(self):
-        current_image = misc.pygame.transform.scale(self.image[0], self.image[1])
-        gunman_rect = rotate_image(current_image, self.angle, self.x, self.y)[1]
+        current_image = misc.pygame.transform.scale(self.current_image[0], self.current_image[1])
+        _, gunman_rect = rotate_image(current_image, self.angle, self.x, self.y)
 
         if gunman_rect.collidepoint(misc.pygame.mouse.get_pos()):
             self.health -= 10
@@ -141,13 +166,8 @@ def rotate_image(image, angle, x, y):
     # left so to turn it right instead the self.angle must be multiplied by -1
     angle = angle * -1
 
-    # TODO: For some reason the image is tuple (problem in Gunman)! Try to fix it
-    if isinstance(image, list):
-        rotated_image = misc.pygame.transform.rotate(image[0], angle)
-        new_rect = rotated_image.get_rect(center=image[0].get_rect(center=(x, y)).center)
-    else:
-        rotated_image = misc.pygame.transform.rotate(image, angle)
-        new_rect = rotated_image.get_rect(center=image.get_rect(center=(x, y)).center)
+    rotated_image = misc.pygame.transform.rotate(image, angle)
+    new_rect = rotated_image.get_rect(center=image.get_rect(center=(x, y)).center)
 
     return rotated_image, new_rect
 
@@ -244,13 +264,13 @@ def show_menu_options(event):
 
                     # Simple way of checkin whether to play the button hover sound or not
                     if misc.menu_options[option] != "red":
-                        misc.button_hover.play()
+                        misc.pygame.mixer.find_channel(True).play(misc.button_hover)
                 else:
                     highlight_color = misc.menu_highlight_color
 
                     # Simple way of checkin whether to play the button hover sound or not
                     if misc.menu_options[option] != misc.menu_highlight_color:
-                        misc.button_hover.play()
+                        misc.pygame.mixer.find_channel(True).play(misc.button_hover)
 
                 misc.menu_options[option] = highlight_color
             else:
@@ -258,7 +278,7 @@ def show_menu_options(event):
 
             if event.type == misc.pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if option_text_rect.collidepoint(misc.pygame.mouse.get_pos()):
-                    misc.button_click.play()
+                    misc.pygame.mixer.find_channel(True).play(misc.button_click)
 
                     # Decide what happens when one of the menu options is clicked
                     if option == "Close":
@@ -325,18 +345,20 @@ def update_sliders(event):
     slider.update_sliders(event)
 
     # Sliders' labels
-    font = misc.pygame.font.Font(f"{misc.path}/fonts/font.ttf", 15)
-    text = font.render(f"Music Volume: {(music_volume.get_value()*10):.1f}", True, misc.pygame.Color("white"))
-    misc.display.blit(text, (music_volume.x + music_volume.width + 20, music_volume.y-5))
+    font = misc.pygame.font.Font(f"{misc.path}/fonts/pixel_font.ttf", 15)
+    text = font.render("Music Volume", True, misc.pygame.Color("white"))
+    misc.display.blit(text, (music_volume.x + music_volume.width + 20, music_volume.y - 2.5))
 
-    text = font.render(f"SFX Volume: {sfx_volume.get_value():.1f}", True, misc.pygame.Color("white"))
-    misc.display.blit(text, (sfx_volume.x + sfx_volume.width + 20, sfx_volume.y - 5))
+    text = font.render("SFX Volume", True, misc.pygame.Color("white"))
+    misc.display.blit(text, (sfx_volume.x + sfx_volume.width + 20, sfx_volume.y - 2.5))
 
     # Set music and sound effects' volume
     misc.pygame.mixer.music.set_volume(music_volume.get_value())
 
     misc.pistol_shoot.set_volume(sfx_volume.get_value())
     misc.pistol_reload.set_volume(sfx_volume.get_value() * 0.8)
+
+    misc.rifle_shoot.set_volume(sfx_volume.get_value())
 
     misc.button_hover.set_volume(sfx_volume.get_value() * 0.3)
     misc.button_click.set_volume(sfx_volume.get_value() * 0.5)
@@ -399,11 +421,26 @@ def main():
         if misc.MENU_OPEN:
             update_sliders(event)
 
-        # Shoot
+        # Gunman; Shoot
+        # Check if any of the gunmen is shooting. If someone is, prevent other gunmen from shooting.
+        # Only one gunman should be able to shoot at the player at time
+        free_to_fire = True
+        for gunman in misc.gunmen:
+            if gunman.shooting:
+                free_to_fire = False
+
+        for gunman in misc.gunmen:
+            if not misc.MENU_OPEN and gunman.is_alive and gunman.player_distance < gunman.danger_zone:
+                # The change of gunman shooting at the player is 1 in 40
+                if free_to_fire and not gunman.shooting and not gunman.reloading and random.randint(0, 40) == 0:
+                    gunman.shooting = True
+                    misc.pygame.mixer.find_channel(True).play(misc.rifle_shoot)
+
+        # Player; Shoot
         if event.type == misc.pygame.MOUSEBUTTONDOWN and event.button == 1 and not misc.MENU_OPEN:
             if not player.reloading and not player.shooting:
                 player.shooting = True
-                misc.pistol_shoot.play()
+                misc.pygame.mixer.find_channel(True).play(misc.pistol_shoot)
 
             # Check if the player hit the gunman
             if player.shooting:
@@ -415,11 +452,12 @@ def main():
             if event.key == misc.pygame.K_r and not player.reloading and not misc.MENU_OPEN:
                 if not player.shooting:
                     player.reloading = True
-                    misc.pistol_reload.play()
+                    misc.pygame.mixer.find_channel(True).play(misc.pistol_reload)
 
             # Open pause menu
             if event.key == misc.pygame.K_ESCAPE:
                 misc.MENU_OPEN = not misc.MENU_OPEN
+                misc.pygame.mixer.find_channel(True).play(misc.button_hover)
 
             # Toggle debug screen
             if event.key == misc.pygame.K_F3:
