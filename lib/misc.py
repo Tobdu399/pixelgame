@@ -35,55 +35,77 @@ menu_options = {"Close": "white", "Restart": "white", "Quit": "white"}
 menu_highlight_color = "green"
 
 # Images
-background_img = pygame.image.load(f"{path}/pictures/display/grass.png").convert()
+# Converting images to alpha increases the game performance significantly
+background_img = pygame.image.load(f"{path}/pictures/display/grass.png").convert_alpha(display)
 
 gunmen = []
 gunman_images = {
-    "idle": (pygame.image.load(f"{path}/pictures/gunman/gunman_idle.png"), (140, 75)),
+    "idle": (pygame.image.load(f"{path}/pictures/gunman/gunman_idle.png").convert_alpha(display), (140, 75)),
 
     "shoot": [
-        (pygame.image.load(f"{path}/pictures/gunman/gunman_shoot_0.png"), (140, 75)),
-        (pygame.image.load(f"{path}/pictures/gunman/gunman_shoot_1.png"), (140, 75)),
-        (pygame.image.load(f"{path}/pictures/gunman/gunman_shoot_2.png"), (140, 75)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_shoot_0.png").convert_alpha(display), (140, 75)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_shoot_1.png").convert_alpha(display), (140, 75)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_shoot_2.png").convert_alpha(display), (140, 75)),
     ],
 
     "reload": [
-        (pygame.image.load(f"{path}/pictures/gunman/gunman_idle.png"), (140, 76))
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_0.png").convert_alpha(display), (140, 75)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_1.png").convert_alpha(display), (140, 76)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_2.png").convert_alpha(display), (140, 76)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_3.png").convert_alpha(display), (140, 77)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_4.png").convert_alpha(display), (140, 77)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_5.png").convert_alpha(display), (140, 78)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_6.png").convert_alpha(display), (140, 78)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_7.png").convert_alpha(display), (140, 78)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_8.png").convert_alpha(display), (140, 78)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_9.png").convert_alpha(display), (140, 78)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_10.png").convert_alpha(display), (140, 78)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_11.png").convert_alpha(display), (140, 78)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_12.png").convert_alpha(display), (140, 79)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_13.png").convert_alpha(display), (140, 79)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_14.png").convert_alpha(display), (140, 79)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_15.png").convert_alpha(display), (140, 78)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_16.png").convert_alpha(display), (140, 77)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_17.png").convert_alpha(display), (140, 76)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_18.png").convert_alpha(display), (140, 75)),
+        (pygame.image.load(f"{path}/pictures/gunman/gunman_reload_19.png").convert_alpha(display), (140, 75)),
     ]
 }
 
 player_images = {
-    "idle": (pygame.image.load(f"{path}/pictures/player/player_idle.png"), (127, 76)),
+    "idle": (pygame.image.load(f"{path}/pictures/player/player_idle.png").convert_alpha(display), (127, 76)),
 
     "shoot": [
-        (pygame.image.load(f"{path}/pictures/player/player_shoot_0.png"), (125, 75)),
-        (pygame.image.load(f"{path}/pictures/player/player_shoot_1.png"), (125, 75)),
-        (pygame.image.load(f"{path}/pictures/player/player_shoot_2.png"), (125, 75)),
+        (pygame.image.load(f"{path}/pictures/player/player_shoot_0.png").convert_alpha(display), (125, 75)),
+        (pygame.image.load(f"{path}/pictures/player/player_shoot_1.png").convert_alpha(display), (125, 75)),
+        (pygame.image.load(f"{path}/pictures/player/player_shoot_2.png").convert_alpha(display), (125, 75)),
     ],
 
     "reload": [
-        (pygame.image.load(f"{path}/pictures/player/player_reload_0.png"), (125, 75)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_1.png"), (125, 76)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_2.png"), (125, 77)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_3.png"), (125, 78)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_4.png"), (125, 80)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_5.png"), (125, 82)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_6.png"), (125, 83)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_7.png"), (125, 85)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_8.png"), (125, 85)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_9.png"), (125, 84)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_10.png"), (125, 82)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_11.png"), (125, 80)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_12.png"), (125, 78)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_13.png"), (125, 76)),
-        (pygame.image.load(f"{path}/pictures/player/player_reload_14.png"), (125, 76)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_0.png").convert_alpha(display), (125, 75)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_1.png").convert_alpha(display), (125, 76)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_2.png").convert_alpha(display), (125, 77)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_3.png").convert_alpha(display), (125, 78)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_4.png").convert_alpha(display), (125, 80)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_5.png").convert_alpha(display), (125, 82)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_6.png").convert_alpha(display), (125, 83)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_7.png").convert_alpha(display), (125, 85)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_8.png").convert_alpha(display), (125, 85)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_9.png").convert_alpha(display), (125, 84)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_10.png").convert_alpha(display), (125, 82)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_11.png").convert_alpha(display), (125, 80)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_12.png").convert_alpha(display), (125, 78)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_13.png").convert_alpha(display), (125, 76)),
+        (pygame.image.load(f"{path}/pictures/player/player_reload_14.png").convert_alpha(display), (125, 76)),
     ]
 }
 
 # Sound Effects
-pistol_shoot = pygame.mixer.Sound(f"{path}/sfx/pistol_shoot.mp3")
+pistol_shoot  = pygame.mixer.Sound(f"{path}/sfx/pistol_shoot.mp3")
 pistol_reload = pygame.mixer.Sound(f"{path}/sfx/pistol_reload.mp3")
-rifle_shoot = pygame.mixer.Sound(f"{path}/sfx/rifle_shoot.mp3")
+rifle_shoot   = pygame.mixer.Sound(f"{path}/sfx/rifle_shoot.mp3")
+rifle_reload  = pygame.mixer.Sound(f"{path}/sfx/rifle_reload.mp3")
+
 button_hover = pygame.mixer.Sound(f"{path}/sfx/button_hover.mp3")
 button_click = pygame.mixer.Sound(f"{path}/sfx/button_click.mp3")
 
@@ -95,5 +117,6 @@ pygame.mixer.music.set_volume(0.05)
 pistol_shoot.set_volume(0.6)
 pistol_reload.set_volume(0.2)
 rifle_shoot.set_volume(0.8)
-button_hover.set_volume(0.2)
+rifle_reload.set_volume(0.05)
+button_hover.set_volume(0.05)
 button_click.set_volume(0.2)

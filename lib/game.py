@@ -4,7 +4,7 @@ from lib import misc
 from lib import slider
 
 # Sliders
-sfx_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 90, 200, "grey", misc.pistol_shoot.get_volume(), 1)
+sfx_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 90, 200, "grey", 1, 2)
 music_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 50, 200, "grey", misc.pygame.mixer.music.get_volume(), 0.2)
 
 slider.sliders.append(sfx_volume)
@@ -87,6 +87,8 @@ class Gunman:
         self.is_alive        = True
         self.player_distance = 0
 
+        self.bullets_remaining = self.clip_size = 30
+
         self.current_image = self.images["idle"]
         self.counter       = 0
         self.frame         = 0
@@ -153,8 +155,16 @@ class Gunman:
                 self.current_image = anim_images[self.frame]
                 return True
 
+    def shoot(self):
+        self.shooting = True
+        self.bullets_remaining -= 1
+
+    def reload(self):
+        self.reloading           = True
+        self.bullets_remaining   = self.clip_size
+
     def hit(self):
-        current_image = misc.pygame.transform.scale(self.current_image[0], self.current_image[1])
+        current_image  = misc.pygame.transform.scale(self.current_image[0], self.current_image[1])
         _, gunman_rect = rotate_image(current_image, self.angle, self.x, self.y)
 
         if gunman_rect.collidepoint(misc.pygame.mouse.get_pos()):
@@ -355,13 +365,14 @@ def update_sliders(event):
     # Set music and sound effects' volume
     misc.pygame.mixer.music.set_volume(music_volume.get_value())
 
-    misc.pistol_shoot.set_volume(sfx_volume.get_value())
-    misc.pistol_reload.set_volume(sfx_volume.get_value() * 0.8)
+    misc.pistol_shoot.set_volume(sfx_volume.get_value() * 0.6)
+    misc.pistol_reload.set_volume(sfx_volume.get_value() * 0.2)
 
-    misc.rifle_shoot.set_volume(sfx_volume.get_value())
+    misc.rifle_shoot.set_volume(sfx_volume.get_value() * 0.8)
+    misc.rifle_reload.set_volume(sfx_volume.get_value() * 0.1)
 
-    misc.button_hover.set_volume(sfx_volume.get_value() * 0.3)
-    misc.button_click.set_volume(sfx_volume.get_value() * 0.5)
+    misc.button_hover.set_volume(sfx_volume.get_value() * 0.05)
+    misc.button_click.set_volume(sfx_volume.get_value() * 0.2)
 
 
 def main():
@@ -433,8 +444,12 @@ def main():
             if not misc.MENU_OPEN and gunman.is_alive and gunman.player_distance < gunman.danger_zone:
                 # The change of gunman shooting at the player is 1 in 40
                 if free_to_fire and not gunman.shooting and not gunman.reloading and random.randint(0, 40) == 0:
-                    gunman.shooting = True
-                    misc.pygame.mixer.find_channel(True).play(misc.rifle_shoot)
+                    if gunman.bullets_remaining > 0:
+                        gunman.shoot()
+                        misc.pygame.mixer.find_channel(True).play(misc.rifle_shoot)
+                    else:
+                        gunman.reload()
+                        misc.pygame.mixer.find_channel(True).play(misc.rifle_reload)
 
         # Player; Shoot
         if event.type == misc.pygame.MOUSEBUTTONDOWN and event.button == 1 and not misc.MENU_OPEN:
