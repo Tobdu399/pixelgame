@@ -10,8 +10,6 @@ music_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + in
 slider.sliders.append(sfx_volume)
 slider.sliders.append(music_volume)
 
-# TODO: Reloading!!
-
 
 class Player:
     def __init__(self, x, y, images):
