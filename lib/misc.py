@@ -101,15 +101,15 @@ player_images = {
 }
 
 # Sound Effects
-pistol_shoot  = pygame.mixer.Sound(f"{path}/sfx/pistol_shoot.mp3")
-pistol_reload = pygame.mixer.Sound(f"{path}/sfx/pistol_reload.mp3")
-rifle_shoot   = pygame.mixer.Sound(f"{path}/sfx/rifle_shoot.mp3")
-rifle_reload  = pygame.mixer.Sound(f"{path}/sfx/rifle_reload.mp3")
+pistol_shoot  = pygame.mixer.Sound(f"{path}/sfx/pistol_shoot.wav")
+pistol_reload = pygame.mixer.Sound(f"{path}/sfx/pistol_reload.wav")
+rifle_shoot   = pygame.mixer.Sound(f"{path}/sfx/rifle_shoot.wav")
+rifle_reload  = pygame.mixer.Sound(f"{path}/sfx/rifle_reload.wav")
 
-button_hover = pygame.mixer.Sound(f"{path}/sfx/button_hover.mp3")
-button_click = pygame.mixer.Sound(f"{path}/sfx/button_click.mp3")
+button_hover = pygame.mixer.Sound(f"{path}/sfx/button_hover.wav")
+button_click = pygame.mixer.Sound(f"{path}/sfx/button_click.wav")
 
-pygame.mixer.music.load(f"{path}/music/music.mp3")
+pygame.mixer.music.load(f"{path}/music/music.wav")
 
 # Set sounds' default volume
 pygame.mixer.music.set_volume(0.05)

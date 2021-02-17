@@ -10,6 +10,10 @@ music_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + in
 slider.sliders.append(sfx_volume)
 slider.sliders.append(music_volume)
 
+# TODO: 1) Collision detection so that the gunmen wouldn't go on top of each other
+# TODO: 2) Fix the gunmen spawning, (spawn them in the borders of the display)
+# TODO: 3) Waves -> Score counting
+
 
 class Player:
     def __init__(self, x, y, images):
@@ -22,6 +26,9 @@ class Player:
         self.counter       = 0
         self.frame         = 0
 
+        self.bullets_remaining = self.clip_size = 15
+
+        self.max_health    = self.health = 500
         self.shooting      = False
         self.reloading     = False
 
@@ -100,7 +107,6 @@ class Gunman:
         h = player.y - self.y
 
         self.player_distance = math.sqrt((player.x - self.x) ** 2 + (player.y - self.y) ** 2)  # distance
-        # TODO: Give some kind of signal when the gunman is able to shoot the player
 
         if w != 0 and not misc.MENU_OPEN:
             self.angle = math.degrees(math.atan(h / w))
@@ -156,6 +162,7 @@ class Gunman:
     def shoot(self):
         self.shooting = True
         self.bullets_remaining -= 1
+        player.health -= 1
 
     def reload(self):
         self.reloading           = True
@@ -167,6 +174,19 @@ class Gunman:
 
         if gunman_rect.collidepoint(misc.pygame.mouse.get_pos()):
             self.health -= 10
+
+    def move(self):
+        if not misc.MENU_OPEN:
+            if self.player_distance > self.danger_zone:
+                speed = 0.25
+                if player.x > self.x:
+                    self.x += speed
+                elif player.x < self.x:
+                    self.x -= speed
+                if player.y > self.y:
+                    self.y += speed
+                elif player.y < self.y:
+                    self.y -= speed
 
 
 def rotate_image(image, angle, x, y):
@@ -354,11 +374,12 @@ def update_sliders(event):
 
     # Sliders' labels
     font = misc.pygame.font.Font(f"{misc.path}/fonts/pixel_font.ttf", 15)
-    text = font.render("Music Volume", True, misc.pygame.Color("white"))
-    misc.display.blit(text, (music_volume.x + music_volume.width + 20, music_volume.y - 2.5))
 
     text = font.render("SFX Volume", True, misc.pygame.Color("white"))
     misc.display.blit(text, (sfx_volume.x + sfx_volume.width + 20, sfx_volume.y - 2.5))
+
+    text = font.render("Music Volume", True, misc.pygame.Color("white"))
+    misc.display.blit(text, (music_volume.x + music_volume.width + 20, music_volume.y - 2.5))
 
     # Set music and sound effects' volume
     misc.pygame.mixer.music.set_volume(music_volume.get_value())
@@ -373,6 +394,28 @@ def update_sliders(event):
     misc.button_click.set_volume(sfx_volume.get_value() * 0.2)
 
 
+def show_player_status():
+    # Health
+    health_bar_width, health_bar_height = 250, 20
+    health_remaining = int(player.max_health * (health_bar_width / player.max_health)) - int((player.max_health - player.health) * (health_bar_width / player.max_health))
+    health_x = misc.WIDTH - health_bar_width-20
+    health_y = 20
+
+    misc.pygame.draw.rect(misc.display, "red", (health_x, health_y, health_bar_width, health_bar_height))
+    misc.pygame.draw.rect(misc.display, "green", (health_x, health_y, health_remaining, health_bar_height))
+
+    font = misc.pygame.font.Font(f"{misc.path}/fonts/font.ttf", 15)
+    text = font.render(str(player.health), True, misc.pygame.Color("black"))
+    text_rect = text.get_rect(center=(health_x + health_bar_width / 2, health_y + health_bar_height / 2))
+    misc.display.blit(text, text_rect)
+
+    # Ammo
+    font = misc.pygame.font.Font(f"{misc.path}/fonts/font.ttf", 35)
+    text = font.render(f"{player.bullets_remaining} / {player.clip_size}", True, misc.pygame.Color("white"))
+    text_rect = text.get_rect(center=(health_x + health_bar_width/2, health_y+50))
+    misc.display.blit(text, text_rect)
+
+
 def main():
     game_setup()
     misc.pygame.mixer.music.play(-1, 0.0)
@@ -384,6 +427,7 @@ def main():
 
         # misc.display the misc.gunmen
         for gunman in misc.gunmen:
+            gunman.move()
             gunman.show()
 
         # Show player sight
@@ -395,6 +439,9 @@ def main():
 
         # misc.display the player
         player.show()
+
+        # Show player stats
+        show_player_status()
 
         # Debug screen (press F3 to show)
         debug_screen()
@@ -431,17 +478,11 @@ def main():
             update_sliders(event)
 
         # Gunman; Shoot
-        # Check if any of the gunmen is shooting. If someone is, prevent other gunmen from shooting.
-        # Only one gunman should be able to shoot at the player at time
-        free_to_fire = True
-        for gunman in misc.gunmen:
-            if gunman.shooting:
-                free_to_fire = False
 
         for gunman in misc.gunmen:
             if not misc.MENU_OPEN and gunman.is_alive and gunman.player_distance < gunman.danger_zone:
                 # The change of gunman shooting at the player is 1 in 40
-                if free_to_fire and not gunman.shooting and not gunman.reloading and random.randint(0, 40) == 0:
+                if not gunman.shooting and not gunman.reloading and random.randint(0, 40) == 0:
                     if gunman.bullets_remaining > 0:
                         gunman.shoot()
                         misc.pygame.mixer.find_channel(True).play(misc.rifle_shoot)
@@ -452,8 +493,10 @@ def main():
         # Player; Shoot
         if event.type == misc.pygame.MOUSEBUTTONDOWN and event.button == 1 and not misc.MENU_OPEN:
             if not player.reloading and not player.shooting:
-                player.shooting = True
-                misc.pygame.mixer.find_channel(True).play(misc.pistol_shoot)
+                if player.bullets_remaining > 0:
+                    player.shooting = True
+                    player.bullets_remaining -= 1
+                    misc.pygame.mixer.find_channel(True).play(misc.pistol_shoot)
 
             # Check if the player hit the gunman
             if player.shooting:
@@ -463,8 +506,9 @@ def main():
         if event.type == misc.pygame.KEYDOWN:
             # Reload
             if event.key == misc.pygame.K_r and not player.reloading and not misc.MENU_OPEN:
-                if not player.shooting:
+                if not player.shooting and player.bullets_remaining < player.clip_size:
                     player.reloading = True
+                    player.bullets_remaining = player.clip_size
                     misc.pygame.mixer.find_channel(True).play(misc.pistol_reload)
 
             # Open pause menu
