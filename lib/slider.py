@@ -30,7 +30,7 @@ class Slider:
 
 def update_sliders(event):
     for slider in sliders:
-        # Shot the slider
+        # Show the slider
         slider.show()
 
         # Slider's pointer color
