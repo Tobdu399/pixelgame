@@ -1,4 +1,4 @@
-# Pixel Game `Under Development :exclamation:`
+# Pixel Game `Under Development`
 
 To launch the game, double-click the `__main__.pyw` file _**or**_ type in your console
 `python pixelgame` in the parent directory of the `pixelgame` folder _**or**_
