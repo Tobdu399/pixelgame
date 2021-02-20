@@ -1,9 +1,13 @@
-# Pixel Game [Under Development]
+# Pixel Game `Under Development :exclamation:`
 
-Before running the game for the first time, please install the required python modules
-by running the __install_requirements.py__ file for automatical installation. If you
-prefer manual installation instead, run this command in your console inside the
-__pixelgame__ folder: __python -m pip install -r requirements.txt__
+To launch the game, double-click the `__main__.pyw` file _**or**_ type in your console
+`python pixelgame` in the parent directory of the `pixelgame` folder _**or**_
+type in your console `python __main__.pyw` in the game folder
 
-To launch the game, double-click the __main.py__ file or type in your console
-__python pixelgame__ in the parent directory of the __pixelgame__ folder
+---
+
+### TODO:
+- [ ] Add collision detection so that the gunmen wouldn't go on top of each other
+- [x] Fix the gunmen spawning (spawn them in the borders of the display)
+- [ ] Waves and Score counting
+- [ ] Game ending

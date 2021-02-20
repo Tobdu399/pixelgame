@@ -11,8 +11,8 @@ slider.sliders.append(sfx_volume)
 slider.sliders.append(music_volume)
 
 # TODO: 1) Collision detection so that the gunmen wouldn't go on top of each other
-# TODO: 2) Fix the gunmen spawning, (spawn them in the borders of the display)
-# TODO: 3) Waves -> Score counting
+# TODO: 2) Waves -> Score counting
+# TODO: 3) Game ending
 
 
 class Player:
@@ -28,7 +28,7 @@ class Player:
 
         self.bullets_remaining = self.clip_size = 15
 
-        self.max_health    = self.health = 500
+        self.max_health    = self.health = 200
         self.shooting      = False
         self.reloading     = False
 
@@ -98,10 +98,17 @@ class Gunman:
         self.counter       = 0
         self.frame         = 0
 
+        self.in_display    = False
         self.shooting      = False
         self.reloading     = False
 
     def show(self):
+        # Check if the gunman is in the display
+        if misc.WIDTH-50 > self.x > 50 and misc.HEIGHT-50 > self.y > 50:
+            self.in_display = True
+        else:
+            self.in_display = False
+
         # Calculate the self.angle in which the gunman is positioned using argus tangent
         w = player.x - self.x
         h = player.y - self.y
@@ -177,16 +184,15 @@ class Gunman:
 
     def move(self):
         if not misc.MENU_OPEN:
-            if self.player_distance > self.danger_zone:
-                speed = 0.25
-                if player.x > self.x:
-                    self.x += speed
-                elif player.x < self.x:
-                    self.x -= speed
-                if player.y > self.y:
-                    self.y += speed
-                elif player.y < self.y:
-                    self.y -= speed
+            if self.player_distance >= self.danger_zone or not self.in_display:
+                if self.player_distance > 0:
+                    speed = 0.25
+
+                    x_dir = (player.x - self.x) * speed / self.player_distance
+                    y_dir = (player.y - self.y) * speed / self.player_distance
+
+                    self.x += x_dir
+                    self.y += y_dir
 
 
 def rotate_image(image, angle, x, y):
@@ -208,14 +214,13 @@ def debug_screen():
 
         for gun_man in misc.gunmen:
             if gun_man.is_alive:
-                distance = math.sqrt((player.x - gun_man.x) ** 2 + (player.y - gun_man.y) ** 2)
-
-                if distance > gun_man.danger_zone:
+                if gun_man.player_distance > gun_man.danger_zone:
                     color = "red"
                 else:
                     color = "green"
 
                 misc.pygame.draw.circle(misc.display, "dark green", (gun_man.x, gun_man.y), gun_man.danger_zone, 3)
+
                 misc.pygame.draw.line(misc.display, color, (gun_man.x, gun_man.y), (player.x, player.y), 3)
                 misc.pygame.draw.circle(misc.display, "yellow", (gun_man.x, gun_man.y), 5)
 
@@ -318,15 +323,35 @@ def show_menu_options(event):
 
 
 def spawn_gunmen():
-    misc.gunmen.clear()
+    all_killed = True
+    for gunman in misc.gunmen:
+        if gunman.is_alive:
+            all_killed = False
 
-    # Create gunman
-    for _ in range(5):
-        gm_x_pos = random.randint(100, misc.WIDTH - 100)
-        gm_y_pos = random.randint(100, misc.HEIGHT - 100)
-        gm_danger_zone = 400
+    if all_killed:
+        misc.gunmen.clear()
 
-        misc.gunmen.append(Gunman(gm_x_pos, gm_y_pos, gm_danger_zone, misc.gunman_images))
+        # Create gunman
+        for _ in range(5):
+            top_or_bottom = random.randint(0, 2)
+            left_or_right = random.randint(0, 1)
+
+            if top_or_bottom == 2:
+                gm_y_pos = misc.HEIGHT+100
+                gm_x_pos = random.randint(-100, misc.WIDTH+100)
+            elif top_or_bottom == 1:
+                gm_y_pos = random.randint(-100, misc.HEIGHT+100)
+                if left_or_right == 1:
+                    gm_x_pos = misc.WIDTH+100
+                else:
+                    gm_x_pos = -100
+            else:
+                gm_y_pos = -100
+                gm_x_pos = random.randint(-100, misc.WIDTH+100)
+
+            gm_danger_zone = 400
+
+            misc.gunmen.append(Gunman(gm_x_pos, gm_y_pos, gm_danger_zone, misc.gunman_images))
 
 
 def exit_game():
@@ -340,11 +365,12 @@ def exit_game():
 def game_setup():
     global player
 
+    # Spawn gunmen
+    misc.gunmen.clear()
+    spawn_gunmen()
+
     # Create new player
     player = Player(int(misc.WIDTH/2), int(misc.HEIGHT/2), misc.player_images)
-
-    # Spawn misc.gunmen
-    spawn_gunmen()
 
     # Close the menu if it is open when starting the game
     if misc.MENU_OPEN:
@@ -390,6 +416,8 @@ def update_sliders(event):
     misc.rifle_shoot.set_volume(sfx_volume.get_value() * 0.8)
     misc.rifle_reload.set_volume(sfx_volume.get_value() * 0.1)
 
+    misc.pistol_empty.set_volume(sfx_volume.get_value() * 0.1)
+
     misc.button_hover.set_volume(sfx_volume.get_value() * 0.05)
     misc.button_click.set_volume(sfx_volume.get_value() * 0.2)
 
@@ -426,6 +454,9 @@ def main():
         draw_background()
 
         # misc.display the misc.gunmen
+        # Spawn gunmen
+        spawn_gunmen()
+
         for gunman in misc.gunmen:
             gunman.move()
             gunman.show()
@@ -453,13 +484,13 @@ def main():
         if not misc.MENU_OPEN:
             keys = misc.pygame.key.get_pressed()
 
-            # If the user holds shift key, the player will run faster
+            # If the user holds shift key, the player will move faster
             if misc.pygame.key.get_mods() & misc.pygame.KMOD_SHIFT:
                 movement_speed = 1
             else:
                 movement_speed = 0.5
 
-            # Use WASD for movement
+            # Move using WASD
             if keys[misc.pygame.K_w]:
                 player.move(0, -movement_speed)
             if keys[misc.pygame.K_a]:
@@ -469,6 +500,7 @@ def main():
             if keys[misc.pygame.K_d]:
                 player.move(movement_speed, 0)
 
+        # Event handling
         event = misc.pygame.event.poll()
 
         if event.type == misc.pygame.QUIT:
@@ -478,17 +510,19 @@ def main():
             update_sliders(event)
 
         # Gunman; Shoot
-
         for gunman in misc.gunmen:
             if not misc.MENU_OPEN and gunman.is_alive and gunman.player_distance < gunman.danger_zone:
                 # The change of gunman shooting at the player is 1 in 40
                 if not gunman.shooting and not gunman.reloading and random.randint(0, 40) == 0:
-                    if gunman.bullets_remaining > 0:
-                        gunman.shoot()
-                        misc.pygame.mixer.find_channel(True).play(misc.rifle_shoot)
-                    else:
-                        gunman.reload()
-                        misc.pygame.mixer.find_channel(True).play(misc.rifle_reload)
+                    # Check if the gunman is in the display before shooting
+                    if gunman.in_display:
+                        # Shoot and if there are no bullets left, reload
+                        if gunman.bullets_remaining > 0:
+                            gunman.shoot()
+                            misc.pygame.mixer.find_channel(True).play(misc.rifle_shoot)
+                        else:
+                            gunman.reload()
+                            misc.pygame.mixer.find_channel(True).play(misc.rifle_reload)
 
         # Player; Shoot
         if event.type == misc.pygame.MOUSEBUTTONDOWN and event.button == 1 and not misc.MENU_OPEN:
@@ -497,6 +531,8 @@ def main():
                     player.shooting = True
                     player.bullets_remaining -= 1
                     misc.pygame.mixer.find_channel(True).play(misc.pistol_shoot)
+                else:
+                    misc.pistol_empty.play()
 
             # Check if the player hit the gunman
             if player.shooting:

@@ -22,7 +22,7 @@ class Slider:
     def show(self):
         pygame.draw.rect(display, self.color, (self.x, self.y, self.width, self.height), border_radius=5)
         self.value = ((self.pointer_x - self.x) / self.width) * self.max_value  # Update the slider value
-        # Slider's pointer is drawn in the move_pointer
+        # Slider's pointer is drawn in the update_slider()
 
     def get_value(self):
         return self.value
@@ -30,6 +30,7 @@ class Slider:
 
 def update_sliders(event):
     for slider in sliders:
+        # Shot the slider
         slider.show()
 
         # Slider's pointer color
@@ -37,7 +38,7 @@ def update_sliders(event):
         g = 255 - ((slider.pointer_x - slider.x) / slider.width) * 255
         b = 0
 
-        # Show slider
+        # Show the pointer
         pointer = pygame.draw.circle(display, (r, g, b), (slider.pointer_x, slider.pointer_y), slider.pointer_radius)
 
         if slider.active:

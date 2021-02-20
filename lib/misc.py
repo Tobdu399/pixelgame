@@ -35,7 +35,7 @@ menu_options = {"Close": "white", "Restart": "white", "Quit": "white"}
 menu_highlight_color = "green"
 
 # Images
-# Converting images to alpha increases the game performance significantly
+# NOTE: Converting images to alpha increases the game performance significantly
 background_img = pygame.image.load(f"{path}/pictures/display/grass.png").convert_alpha(display)
 
 gunmen = []
@@ -105,6 +105,7 @@ pistol_shoot  = pygame.mixer.Sound(f"{path}/sfx/pistol_shoot.wav")
 pistol_reload = pygame.mixer.Sound(f"{path}/sfx/pistol_reload.wav")
 rifle_shoot   = pygame.mixer.Sound(f"{path}/sfx/rifle_shoot.wav")
 rifle_reload  = pygame.mixer.Sound(f"{path}/sfx/rifle_reload.wav")
+pistol_empty  = pygame.mixer.Sound(f"{path}/sfx/pistol_empty.wav")
 
 button_hover = pygame.mixer.Sound(f"{path}/sfx/button_hover.wav")
 button_click = pygame.mixer.Sound(f"{path}/sfx/button_click.wav")
@@ -118,5 +119,7 @@ pistol_shoot.set_volume(0.6)
 pistol_reload.set_volume(0.2)
 rifle_shoot.set_volume(0.8)
 rifle_reload.set_volume(0.05)
+pistol_empty.set_volume(0.1)
+
 button_hover.set_volume(0.05)
 button_click.set_volume(0.2)
