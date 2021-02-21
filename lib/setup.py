@@ -7,8 +7,10 @@ def install_modules():
     path = dirname(abspath(__file__))
 
     if operating_system == "nt":  # Windows
+        subprocess.call("title Installing modules...",   shell=True)
         subprocess.call("py -m pip install --upgrade pip",               shell=True)
         subprocess.call(f"py -m pip install -r {path}/requirements.txt", shell=True)
+        subprocess.call("title Installation completed", shell=True)
     else:
         subprocess.call("python3 -m pip install --upgrade pip",               shell=True)
         subprocess.call(f"python3 -m pip install -r {path}/requirements.txt", shell=True)
@@ -16,12 +18,8 @@ def install_modules():
 
 if __name__ == "__main__":
     # Show some info if this file is executed manually
-
-    print("=======| PIXEL GAME SETUP |=======")
-    print(" Installing Modules! Please wait.\n")
+    print("Installing Modules! Please wait...\n")
 
     install_modules()
 
-    print("==================================")
-
-    input("\nPress ENTER to exit the installation...")
+    input("\nPress ENTER to exit the installation ")

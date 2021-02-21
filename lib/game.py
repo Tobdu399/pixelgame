@@ -196,7 +196,7 @@ class Gunman:
 
 
 def rotate_image(image, angle, x, y):
-    # By default misc.pygame.transform.rotate rotates the image to
+    # By default pygame.transform.rotate rotates the image to
     # left so to turn it right instead the self.angle must be multiplied by -1
     angle = angle * -1
 
@@ -338,7 +338,7 @@ def new_round():
     if all_killed:
         misc.ROUND            += 1
         misc.GUNMEN_AMOUNT    += 5
-        msg = message.Message(f"ROUND {misc.ROUND}!")
+        msg = message.Message(f"ROUND {misc.ROUND}")
 
         misc.gunmen.clear()
 
@@ -499,6 +499,10 @@ def main():
             msg.show()
 
         # Menu
+        if not misc.pygame.mouse.get_focused():
+            # If the user isn't focused to the game window, pause the game
+            misc.MENU_OPEN = True
+            
         menu()
 
         # Player movement
