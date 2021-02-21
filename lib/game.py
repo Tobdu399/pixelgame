@@ -2,6 +2,7 @@ import math
 import random
 from lib import misc
 from lib import slider
+from lib import message
 
 # Sliders
 sfx_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 90, 200, "grey", 1, 2)
@@ -11,8 +12,7 @@ slider.sliders.append(sfx_volume)
 slider.sliders.append(music_volume)
 
 # TODO: 1) Collision detection so that the gunmen wouldn't go on top of each other
-# TODO: 2) Waves -> Score counting
-# TODO: 3) Game ending
+# TODO: 2) Game ending
 
 
 class Player:
@@ -26,7 +26,7 @@ class Player:
         self.counter       = 0
         self.frame         = 0
 
-        self.bullets_remaining = self.clip_size = 15
+        self.bullets_remaining = self.clip_size = 30
 
         self.max_health    = self.health = 200
         self.shooting      = False
@@ -62,7 +62,7 @@ class Player:
         current_image = misc.pygame.transform.scale(self.current_image[0], self.current_image[1])
         rotated_img, rotated_img_rect = rotate_image(current_image, self.angle, self.x, self.y)
 
-        # misc.display the player
+        # Display the player
         misc.display.blit(rotated_img, rotated_img_rect)
 
     def animate(self, busy, anim_images, idle_image):
@@ -113,7 +113,7 @@ class Gunman:
         w = player.x - self.x
         h = player.y - self.y
 
-        self.player_distance = math.sqrt((player.x - self.x) ** 2 + (player.y - self.y) ** 2)  # distance
+        self.player_distance = math.sqrt((player.x - self.x) ** 2 + (player.y - self.y) ** 2)  # distance to player
 
         if w != 0 and not misc.MENU_OPEN:
             self.angle = math.degrees(math.atan(h / w))
@@ -154,6 +154,11 @@ class Gunman:
                 misc.pygame.draw.rect(misc.display, "red", (health_bar_x, health_bar_y, 100, health_bar_height), border_radius=2)
                 misc.pygame.draw.rect(misc.display, "green", (health_bar_x, health_bar_y, self.health, health_bar_height), border_radius=2)
         else:
+            # If the gunman died, increase the player's score and its multiplier
+            if self.is_alive:
+                misc.SCORE += 10 * misc.SCORE_MULTIPLIER
+                misc.SCORE_MULTIPLIER += 0.1
+
             self.is_alive = False
 
     def animate(self, busy, anim_images, idle_image):
@@ -180,19 +185,14 @@ class Gunman:
         _, gunman_rect = rotate_image(current_image, self.angle, self.x, self.y)
 
         if gunman_rect.collidepoint(misc.pygame.mouse.get_pos()):
-            self.health -= 10
+            self.health -= 20
 
-    def move(self):
+    def move(self, speed=0.25):
         if not misc.MENU_OPEN:
             if self.player_distance >= self.danger_zone or not self.in_display:
                 if self.player_distance > 0:
-                    speed = 0.25
-
-                    x_dir = (player.x - self.x) * speed / self.player_distance
-                    y_dir = (player.y - self.y) * speed / self.player_distance
-
-                    self.x += x_dir
-                    self.y += y_dir
+                    self.x += (player.x - self.x) * speed / self.player_distance
+                    self.y += (player.y - self.y) * speed / self.player_distance
 
 
 def rotate_image(image, angle, x, y):
@@ -209,7 +209,7 @@ def rotate_image(image, angle, x, y):
 def debug_screen():
     # Debug screen (press F3 to show)
     if misc.DEBUG_SCREEN:
-        font = misc.pygame.font.Font(misc.path + "/fonts/font.ttf", 15)
+        font = misc.pygame.font.Font(f"{misc.path}/fonts/font.ttf", 15)
         mouse_x, mouse_y = misc.pygame.mouse.get_pos()
 
         for gun_man in misc.gunmen:
@@ -267,10 +267,15 @@ def menu():
         misc.display.blit(info_bg, (int(misc.WIDTH / 4) + 5, int(misc.HEIGHT / 4) + 5))
 
         # Title
-        title_font = misc.pygame.font.Font(misc.path + "/fonts/pixel_font.ttf", int(misc.HEIGHT/20))
+        title_font = misc.pygame.font.Font(f"{misc.path}/fonts/pixel_font.ttf", int(misc.WIDTH/30))
         title = title_font.render("MENU", True, misc.pygame.Color("white"))
         title_rect = title.get_rect(center=(int(misc.WIDTH / 2), int(misc.HEIGHT / 4) + 60))
         misc.display.blit(title, title_rect)
+
+        # Round
+        round_font = misc.pygame.font.Font(f"{misc.path}/fonts/pixel_font.ttf", int(misc.WIDTH/80))
+        round_text = round_font.render(f"ROUND {misc.ROUND}", True, misc.pygame.Color("white"))
+        misc.display.blit(round_text, (int(misc.WIDTH / 4) + 50, title_rect.y))
 
 
 def show_menu_options(event):
@@ -279,7 +284,7 @@ def show_menu_options(event):
         space_between_options = int(misc.HEIGHT/20)
 
         for option in misc.menu_options.keys():
-            option_font = misc.pygame.font.Font(misc.path + "/fonts/pixel_font.ttf", int(misc.HEIGHT/30))
+            option_font = misc.pygame.font.Font(f"{misc.path}/fonts/pixel_font.ttf", int(misc.WIDTH/50))
             option_text = option_font.render(option, True, misc.pygame.Color(misc.menu_options[option]))
 
             x = int(misc.WIDTH / 2)
@@ -322,34 +327,40 @@ def show_menu_options(event):
                         exit_game()
 
 
-def spawn_gunmen():
+def new_round():
+    global msg
+
     all_killed = True
     for gunman in misc.gunmen:
         if gunman.is_alive:
             all_killed = False
 
     if all_killed:
+        misc.ROUND            += 1
+        misc.GUNMEN_AMOUNT    += 5
+        msg = message.Message(f"ROUND {misc.ROUND}!")
+
         misc.gunmen.clear()
 
+        gm_danger_zone = 400
+
         # Create gunman
-        for _ in range(5):
+        for _ in range(misc.GUNMEN_AMOUNT):
             top_or_bottom = random.randint(0, 2)
             left_or_right = random.randint(0, 1)
 
             if top_or_bottom == 2:
-                gm_y_pos = misc.HEIGHT+100
-                gm_x_pos = random.randint(-100, misc.WIDTH+100)
+                gm_y_pos = (misc.HEIGHT+100) + gm_danger_zone
+                gm_x_pos = random.randint(-100 - gm_danger_zone, (misc.WIDTH+100) + gm_danger_zone)
             elif top_or_bottom == 1:
-                gm_y_pos = random.randint(-100, misc.HEIGHT+100)
+                gm_y_pos = random.randint(-100 - gm_danger_zone, (misc.HEIGHT+100) + gm_danger_zone)
                 if left_or_right == 1:
-                    gm_x_pos = misc.WIDTH+100
+                    gm_x_pos = (misc.WIDTH+100) + gm_danger_zone
                 else:
-                    gm_x_pos = -100
+                    gm_x_pos = -100 - gm_danger_zone
             else:
-                gm_y_pos = -100
-                gm_x_pos = random.randint(-100, misc.WIDTH+100)
-
-            gm_danger_zone = 400
+                gm_y_pos = -100 - gm_danger_zone
+                gm_x_pos = random.randint(-100 - gm_danger_zone, (misc.WIDTH+100) + gm_danger_zone)
 
             misc.gunmen.append(Gunman(gm_x_pos, gm_y_pos, gm_danger_zone, misc.gunman_images))
 
@@ -366,8 +377,10 @@ def game_setup():
     global player
 
     # Spawn gunmen
+    misc.SCORE = misc.ROUND = misc.GUNMEN_AMOUNT = 0
+    misc.SCORE_MULTIPLIER   = 1
     misc.gunmen.clear()
-    spawn_gunmen()
+    new_round()
 
     # Create new player
     player = Player(int(misc.WIDTH/2), int(misc.HEIGHT/2), misc.player_images)
@@ -443,6 +456,11 @@ def show_player_status():
     text_rect = text.get_rect(center=(health_x + health_bar_width/2, health_y+50))
     misc.display.blit(text, text_rect)
 
+    # Score
+    font = misc.pygame.font.Font(f"{misc.path}/fonts/pixel_font.ttf", 35)
+    text = font.render(f"Score {int(misc.SCORE)}", True, misc.pygame.Color("white"))
+    misc.display.blit(text, (20, 20))
+
 
 def main():
     game_setup()
@@ -453,9 +471,8 @@ def main():
         misc.display.fill("dark green")
         draw_background()
 
-        # misc.display the misc.gunmen
-        # Spawn gunmen
-        spawn_gunmen()
+        # Display the gunmen
+        new_round()
 
         for gunman in misc.gunmen:
             gunman.move()
@@ -468,7 +485,7 @@ def main():
             misc.pygame.mouse.set_visible(False)
             misc.pygame.draw.circle(misc.display, "red", (misc.pygame.mouse.get_pos()), 5)
 
-        # misc.display the player
+        # Display the player
         player.show()
 
         # Show player stats
@@ -476,6 +493,10 @@ def main():
 
         # Debug screen (press F3 to show)
         debug_screen()
+
+        # Popup Message (current round message)
+        if not misc.MENU_OPEN:
+            msg.show()
 
         # Menu
         menu()
@@ -534,10 +555,10 @@ def main():
                 else:
                     misc.pistol_empty.play()
 
-            # Check if the player hit the gunman
-            if player.shooting:
-                for gunman in misc.gunmen:
-                    gunman.hit()
+                # Check if the player hit the gunman
+                if player.shooting:
+                    for gunman in misc.gunmen:
+                        gunman.hit()
 
         if event.type == misc.pygame.KEYDOWN:
             # Reload

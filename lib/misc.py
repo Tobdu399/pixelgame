@@ -9,17 +9,21 @@ import pathlib
 path = str(pathlib.Path(__file__).resolve().parent)
 
 pygame.init()
-pygame.mixer.init(frequency=44100, size=-16, channels=1, buffer=2**12)
+pygame.mixer.init(frequency=44100, size=-16, buffer=2**12)
 
 display = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Pixel Game")
 clock = pygame.time.Clock()
 
-WIDTH, HEIGHT = pygame.display.get_surface().get_size()
-FPS = 120
-GAME_RUNNING = True
-MENU_OPEN = False
-DEBUG_SCREEN = False
+WIDTH, HEIGHT    = pygame.display.get_surface().get_size()
+FPS              = 120
+GAME_RUNNING     = True
+MENU_OPEN        = False
+DEBUG_SCREEN     = False
+ROUND            = 0
+GUNMEN_AMOUNT    = 0
+SCORE            = 0
+SCORE_MULTIPLIER = 1
 
 # Color and its definition
 color_list = {
