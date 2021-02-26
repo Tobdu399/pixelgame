@@ -7,9 +7,11 @@ type in your console `python __main__.pyw` in the game folder
 ---
 
 ### Coming Soon
-- [ ] Collision detection so that the gunmen wouldn't go on top of each other
 - [ ] Game ending
+- [ ] Load previous game
 
-### New Features
+### Recently Added
 - [x] Spawn gunmen in the borders of the display
 - [x] Waves and Score counting
+- [x] Fade effect
+- [x] Start menu

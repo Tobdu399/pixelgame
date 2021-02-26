@@ -17,13 +17,20 @@ clock = pygame.time.Clock()
 
 WIDTH, HEIGHT    = pygame.display.get_surface().get_size()
 FPS              = 120
-GAME_RUNNING     = True
+
+GAME_OPEN        = True
+START_MENU_OPEN  = True
+GAME_RUNNING     = False
 MENU_OPEN        = False
 DEBUG_SCREEN     = False
+FADE_IN          = False
+FADE_OUT         = False
+
 ROUND            = 0
 GUNMEN_AMOUNT    = 0
 SCORE            = 0
 SCORE_MULTIPLIER = 1
+FADE_ALPHA       = 0
 
 # Color and its definition
 color_list = {
@@ -35,12 +42,17 @@ color_list = {
 }
 
 # Menu option and it's color
-menu_options = {"Close": "white", "Restart": "white", "Quit": "white"}
+menu_options         = {"Close": "white", "Restart": "white", "Quit": "white"}
+start_menu_options   = {"Start New Game": "white", "Load Previous Game": "white", "Quit": "white"}
 menu_highlight_color = "green"
 
 # Images
 # NOTE: Converting images to alpha increases the game performance significantly
 background_img = pygame.image.load(f"{path}/pictures/display/grass.png").convert_alpha(display)
+background_img_rect = background_img.get_rect()
+
+start_menu_background_img = pygame.image.load(f"{path}/pictures/display/start_menu.png").convert_alpha(display)
+start_menu_background_img = pygame.transform.scale(start_menu_background_img, (WIDTH, HEIGHT))
 
 gunmen = []
 gunman_images = {
@@ -114,11 +126,7 @@ pistol_empty  = pygame.mixer.Sound(f"{path}/sfx/pistol_empty.wav")
 button_hover = pygame.mixer.Sound(f"{path}/sfx/button_hover.wav")
 button_click = pygame.mixer.Sound(f"{path}/sfx/button_click.wav")
 
-pygame.mixer.music.load(f"{path}/music/music.wav")
-
 # Set sounds' default volume
-pygame.mixer.music.set_volume(0.05)
-
 pistol_shoot.set_volume(0.6)
 pistol_reload.set_volume(0.2)
 rifle_shoot.set_volume(0.8)

@@ -4,7 +4,7 @@ from lib.misc import pygame, display, path, WIDTH, HEIGHT
 class Message:
     def __init__(self, message):
         self.message          = message
-        self.duration         = 750 # ~6 seconds
+        self.duration         = 750    # ~6 seconds
         self.frame            = 0
         self.max_transparency = self.transparency = 255
 

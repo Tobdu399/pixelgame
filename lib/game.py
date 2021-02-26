@@ -6,13 +6,14 @@ from lib import message
 
 # Sliders
 sfx_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 90, 200, "grey", 1, 2)
-music_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 50, 200, "grey", misc.pygame.mixer.music.get_volume(), 0.2)
+music_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + int(misc.HEIGHT / 4) - 50, 200, "grey", 0.05, 0.2)
 
 slider.sliders.append(sfx_volume)
 slider.sliders.append(music_volume)
 
 # TODO: 1) Collision detection so that the gunmen wouldn't go on top of each other
 # TODO: 2) Game ending
+# TODO: 3) Load previous game
 
 
 class Player:
@@ -28,7 +29,7 @@ class Player:
 
         self.bullets_remaining = self.clip_size = 30
 
-        self.max_health    = self.health = 200
+        self.max_health    = self.health = 100
         self.shooting      = False
         self.reloading     = False
 
@@ -278,53 +279,61 @@ def menu():
         misc.display.blit(round_text, (int(misc.WIDTH / 4) + 50, title_rect.y))
 
 
-def show_menu_options(event):
-    if misc.MENU_OPEN:
-        y_pos = 0
-        space_between_options = int(misc.HEIGHT/20)
+def show_menu_options(event, options):
+    y_pos = 0
+    space_between_options = int(misc.HEIGHT/20)
 
-        for option in misc.menu_options.keys():
-            option_font = misc.pygame.font.Font(f"{misc.path}/fonts/pixel_font.ttf", int(misc.WIDTH/50))
-            option_text = option_font.render(option, True, misc.pygame.Color(misc.menu_options[option]))
+    for option in options.keys():
+        option_font = misc.pygame.font.Font(f"{misc.path}/fonts/pixel_font.ttf", int(misc.WIDTH/50))
+        option_text = option_font.render(option, True, misc.pygame.Color(options[option]))
 
-            x = int(misc.WIDTH / 2)
-            y = int(misc.HEIGHT / 2) - len(misc.menu_options.keys()) * (space_between_options / len(misc.menu_options.keys())) + y_pos
+        x = int(misc.WIDTH / 2)
+        y = int(misc.HEIGHT / 2) - len(options.keys()) * (space_between_options / len(options.keys())) + y_pos
 
-            option_text_rect = option_text.get_rect(center=(x, y))
+        option_text_rect = option_text.get_rect(center=(x, y))
 
-            misc.display.blit(option_text, option_text_rect)
-            y_pos += space_between_options
+        misc.display.blit(option_text, option_text_rect)
+        y_pos += space_between_options
 
-            if option_text_rect.collidepoint(misc.pygame.mouse.get_pos()):
-                # Highlight Quit option in red
-                if option == "Quit":
-                    highlight_color = "red"
+        if option_text_rect.collidepoint(misc.pygame.mouse.get_pos()):
+            # Highlight Quit option in red
+            if option == "Quit":
+                highlight_color = "red"
 
-                    # Simple way of checkin whether to play the button hover sound or not
-                    if misc.menu_options[option] != "red":
-                        misc.pygame.mixer.find_channel(True).play(misc.button_hover)
-                else:
-                    highlight_color = misc.menu_highlight_color
-
-                    # Simple way of checkin whether to play the button hover sound or not
-                    if misc.menu_options[option] != misc.menu_highlight_color:
-                        misc.pygame.mixer.find_channel(True).play(misc.button_hover)
-
-                misc.menu_options[option] = highlight_color
+                # Simple way of checkin whether to play the button hover sound or not
+                if options[option] != "red":
+                    misc.pygame.mixer.find_channel(True).play(misc.button_hover)
             else:
-                misc.menu_options[option] = "white"
+                highlight_color = misc.menu_highlight_color
 
-            if event.type == misc.pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if option_text_rect.collidepoint(misc.pygame.mouse.get_pos()):
-                    misc.pygame.mixer.find_channel(True).play(misc.button_click)
+                # Simple way of checkin whether to play the button hover sound or not
+                if options[option] != misc.menu_highlight_color:
+                    misc.pygame.mixer.find_channel(True).play(misc.button_hover)
 
-                    # Decide what happens when one of the menu options is clicked
+            options[option] = highlight_color
+        else:
+            options[option] = "white"
+
+        if event.type == misc.pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if option_text_rect.collidepoint(misc.pygame.mouse.get_pos()):
+                misc.pygame.mixer.find_channel(True).play(misc.button_click)
+
+                # Decide what happens when one of the menu options is clicked
+                if misc.START_MENU_OPEN:
+                    if option == "Start New Game":
+                        misc.pygame.mixer.music.fadeout(500)                 # Fade out the start menu music
+                        misc.pygame.mixer.music.load(f"{misc.path}/music/music.wav")
+                        misc.pygame.mixer.music.play(-1, 0.0, fade_ms=2000)  # Fade in the game background music
+                        game_setup()
+
+                if misc.MENU_OPEN:
                     if option == "Close":
                         misc.MENU_OPEN = False
                     elif option == "Restart":
                         game_setup()
-                    elif option == "Quit":
-                        exit_game()
+
+                if option == "Quit":
+                    exit_game()
 
 
 def new_round():
@@ -366,7 +375,7 @@ def new_round():
 
 
 def exit_game():
-    misc.GAME_RUNNING = False
+    misc.GAME_OPEN = False
     misc.pygame.mixer.music.stop()
 
     misc.pygame.quit()
@@ -375,6 +384,12 @@ def exit_game():
 
 def game_setup():
     global player
+
+    misc.FADE_ALPHA = 255
+    misc.FADE_IN    = True
+
+    misc.START_MENU_OPEN = False
+    misc.GAME_RUNNING = True
 
     # Spawn gunmen
     misc.SCORE = misc.ROUND = misc.GUNMEN_AMOUNT = 0
@@ -395,17 +410,15 @@ def game_setup():
 
 
 def draw_background():
-    background_img_rect = misc.background_img.get_rect()
-
     y_pos = 0
 
-    for _ in range(math.ceil(misc.WIDTH/background_img_rect.width)):
+    for _ in range(math.ceil(misc.WIDTH/misc.background_img_rect.width)):
         x_pos = 0
-        for _ in range(math.ceil(misc.HEIGHT/background_img_rect.height)):
+        for _ in range(math.ceil(misc.HEIGHT/misc.background_img_rect.height)):
             misc.display.blit(misc.background_img, (x_pos, y_pos))
-            x_pos += background_img_rect.width
+            x_pos += misc.background_img_rect.width
 
-        y_pos += background_img_rect.height
+        y_pos += misc.background_img_rect.height
 
 
 def update_sliders(event):
@@ -462,129 +475,166 @@ def show_player_status():
     misc.display.blit(text, (20, 20))
 
 
+def show_game():
+    # Game background
+    draw_background()
+
+    # Display the gunmen
+    new_round()
+
+    for gunman in misc.gunmen:
+        gunman.move()
+        gunman.show()
+
+    # Show player sight
+    if misc.MENU_OPEN:
+        misc.pygame.mouse.set_visible(True)
+    else:
+        misc.pygame.mouse.set_visible(False)
+        misc.pygame.draw.circle(misc.display, "red", (misc.pygame.mouse.get_pos()), 5)
+
+    # Display the player
+    player.show()
+
+    # Show player stats
+    show_player_status()
+
+    # Debug screen (press F3 to show)
+    debug_screen()
+
+    # Popup Message (current round message)
+    if not misc.MENU_OPEN:
+        msg.show()
+
+    # Menu
+    menu()
+
+
+def show_start_menu():
+    draw_background()
+
+
+def fade():
+    if misc.FADE_IN:
+        if misc.FADE_ALPHA > 0:
+            misc.FADE_ALPHA -= 2
+        if misc.FADE_ALPHA <= 0:
+            misc.FADE_ALPHA = 0
+            misc.FADE_IN = False
+
+    fade_effect = misc.pygame.Surface((misc.WIDTH, misc.HEIGHT), misc.pygame.SRCALPHA)
+    fade_effect.fill((0, 0, 0, misc.FADE_ALPHA))
+    misc.display.blit(fade_effect, (0, 0))
+
+
 def main():
-    game_setup()
+    # Start the start-menu's background music
+    misc.pygame.mixer.music.load(f"{misc.path}/music/start_menu.wav")
     misc.pygame.mixer.music.play(-1, 0.0)
+    misc.pygame.mixer.music.set_volume(0.05)
 
-    while misc.GAME_RUNNING:
-        # Game background
+    # Set fade start value and set it to be shown
+    misc.FADE_ALPHA = 255
+    misc.FADE_IN    = True
+
+    while misc.GAME_OPEN:
         misc.display.fill("dark green")
-        draw_background()
 
-        # Display the gunmen
-        new_round()
-
-        for gunman in misc.gunmen:
-            gunman.move()
-            gunman.show()
-
-        # Show player sight
-        if misc.MENU_OPEN:
-            misc.pygame.mouse.set_visible(True)
-        else:
-            misc.pygame.mouse.set_visible(False)
-            misc.pygame.draw.circle(misc.display, "red", (misc.pygame.mouse.get_pos()), 5)
-
-        # Display the player
-        player.show()
-
-        # Show player stats
-        show_player_status()
-
-        # Debug screen (press F3 to show)
-        debug_screen()
-
-        # Popup Message (current round message)
-        if not misc.MENU_OPEN:
-            msg.show()
-
-        # Menu
-        if not misc.pygame.mouse.get_focused():
-            # If the user isn't focused to the game window, pause the game
-            misc.MENU_OPEN = True
-            
-        menu()
-
-        # Player movement
-        if not misc.MENU_OPEN:
-            keys = misc.pygame.key.get_pressed()
-
-            # If the user holds shift key, the player will move faster
-            if misc.pygame.key.get_mods() & misc.pygame.KMOD_SHIFT:
-                movement_speed = 1
-            else:
-                movement_speed = 0.5
-
-            # Move using WASD
-            if keys[misc.pygame.K_w]:
-                player.move(0, -movement_speed)
-            if keys[misc.pygame.K_a]:
-                player.move(-movement_speed, 0)
-            if keys[misc.pygame.K_s]:
-                player.move(0, movement_speed)
-            if keys[misc.pygame.K_d]:
-                player.move(movement_speed, 0)
-
-        # Event handling
         event = misc.pygame.event.poll()
 
+        if misc.GAME_RUNNING:
+            # Display the game ------------------
+            show_game()
+
+            # Player movement -------------------
+            if not misc.MENU_OPEN:
+                keys = misc.pygame.key.get_pressed()
+
+                # If the user holds shift key, the player will move faster
+                if misc.pygame.key.get_mods() & misc.pygame.KMOD_SHIFT:
+                    movement_speed = 1
+                else:
+                    movement_speed = 0.5
+
+                # Move using WASD
+                if keys[misc.pygame.K_w]:
+                    player.move(0, -movement_speed)
+                if keys[misc.pygame.K_a]:
+                    player.move(-movement_speed, 0)
+                if keys[misc.pygame.K_s]:
+                    player.move(0, movement_speed)
+                if keys[misc.pygame.K_d]:
+                    player.move(movement_speed, 0)
+
+        # Event handling ------------------------
         if event.type == misc.pygame.QUIT:
             exit_game()
 
-        if misc.MENU_OPEN:
-            update_sliders(event)
+        if misc.GAME_RUNNING:
+            if not misc.MENU_OPEN:
+                # Gunman; Shoot
+                for gunman in misc.gunmen:
+                    if not misc.MENU_OPEN and gunman.is_alive and gunman.player_distance < gunman.danger_zone:
+                        # The change of gunman shooting at the player is 1 in 40
+                        if not gunman.shooting and not gunman.reloading and random.randint(0, 40) == 0:
+                            # Check if the gunman is in the display before shooting
+                            if gunman.in_display:
+                                # Shoot and if there are no bullets left, reload
+                                if gunman.bullets_remaining > 0:
+                                    gunman.shoot()
+                                    misc.pygame.mixer.find_channel(True).play(misc.rifle_shoot)
+                                else:
+                                    gunman.reload()
+                                    misc.pygame.mixer.find_channel(True).play(misc.rifle_reload)
 
-        # Gunman; Shoot
-        for gunman in misc.gunmen:
-            if not misc.MENU_OPEN and gunman.is_alive and gunman.player_distance < gunman.danger_zone:
-                # The change of gunman shooting at the player is 1 in 40
-                if not gunman.shooting and not gunman.reloading and random.randint(0, 40) == 0:
-                    # Check if the gunman is in the display before shooting
-                    if gunman.in_display:
-                        # Shoot and if there are no bullets left, reload
-                        if gunman.bullets_remaining > 0:
-                            gunman.shoot()
-                            misc.pygame.mixer.find_channel(True).play(misc.rifle_shoot)
+                # Player; Shoot
+                if event.type == misc.pygame.MOUSEBUTTONDOWN and event.button == 1 and not misc.MENU_OPEN:
+                    if not player.reloading and not player.shooting:
+                        if player.bullets_remaining > 0:
+                            player.shooting = True
+                            player.bullets_remaining -= 1
+                            misc.pygame.mixer.find_channel(True).play(misc.pistol_shoot)
                         else:
-                            gunman.reload()
-                            misc.pygame.mixer.find_channel(True).play(misc.rifle_reload)
+                            misc.pygame.mixer.find_channel(True).play(misc.pistol_empty)
 
-        # Player; Shoot
-        if event.type == misc.pygame.MOUSEBUTTONDOWN and event.button == 1 and not misc.MENU_OPEN:
-            if not player.reloading and not player.shooting:
-                if player.bullets_remaining > 0:
-                    player.shooting = True
-                    player.bullets_remaining -= 1
-                    misc.pygame.mixer.find_channel(True).play(misc.pistol_shoot)
-                else:
-                    misc.pistol_empty.play()
+                        # Check if the player hit the gunman
+                        if player.shooting:
+                            for gunman in misc.gunmen:
+                                gunman.hit()
 
-                # Check if the player hit the gunman
-                if player.shooting:
-                    for gunman in misc.gunmen:
-                        gunman.hit()
+                if event.type == misc.pygame.KEYDOWN:
+                    # Reload
+                    if event.key == misc.pygame.K_r and not player.reloading and not misc.MENU_OPEN:
+                        if not player.shooting and player.bullets_remaining < player.clip_size:
+                            player.reloading = True
+                            player.bullets_remaining = player.clip_size
+                            misc.pygame.mixer.find_channel(True).play(misc.pistol_reload)
 
-        if event.type == misc.pygame.KEYDOWN:
-            # Reload
-            if event.key == misc.pygame.K_r and not player.reloading and not misc.MENU_OPEN:
-                if not player.shooting and player.bullets_remaining < player.clip_size:
-                    player.reloading = True
-                    player.bullets_remaining = player.clip_size
-                    misc.pygame.mixer.find_channel(True).play(misc.pistol_reload)
+            # Show menu options
+            if misc.MENU_OPEN:
+                update_sliders(event)
+                show_menu_options(event, misc.menu_options)
 
-            # Open pause menu
-            if event.key == misc.pygame.K_ESCAPE:
-                misc.MENU_OPEN = not misc.MENU_OPEN
-                misc.pygame.mixer.find_channel(True).play(misc.button_hover)
+            if event.type == misc.pygame.KEYDOWN:
+                # Open and Close the pause menu
+                if event.key == misc.pygame.K_ESCAPE:
+                    misc.MENU_OPEN = not misc.MENU_OPEN
+                    misc.pygame.mixer.find_channel(True).play(misc.button_hover)
 
-            # Toggle debug screen
-            if event.key == misc.pygame.K_F3:
-                misc.DEBUG_SCREEN = not misc.DEBUG_SCREEN
+                # Toggle debug screen
+                if event.key == misc.pygame.K_F3:
+                    misc.DEBUG_SCREEN = not misc.DEBUG_SCREEN
 
-        # Show menu options
-        if misc.MENU_OPEN:
-            show_menu_options(event)
+        # Show start menu
+        if misc.START_MENU_OPEN:
+            # show_start_menu()
+            misc.display.blit(misc.start_menu_background_img, (0, 0))
+            show_menu_options(event, misc.start_menu_options)
 
+        # Show fade effect
+        fade()
+
+        # Update the screen
         misc.pygame.display.update()
         misc.clock.tick(misc.FPS)
 
