@@ -13,3 +13,4 @@ type in your console `python __main__.pyw` in the game folder
 - [x] Fade effect
 - [x] Start menu
 - [x] Load previous game
+- [x] Gunmen behaviour improved

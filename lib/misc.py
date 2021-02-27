@@ -24,7 +24,6 @@ GAME_RUNNING     = False
 MENU_OPEN        = False
 DEBUG_SCREEN     = False
 FADE_IN          = False
-FADE_OUT         = False
 
 ROUND            = 0
 GUNMEN_AMOUNT    = 0
@@ -42,7 +41,7 @@ color_list = {
 }
 
 # Menu option and it's color
-menu_options         = {"Close": "white", "Restart": "white", "Quit": "white"}
+menu_options         = {"Close": "white", "Restart Game": "white", "Save And Quit": "white"}
 start_menu_options   = {"Start New Game": "white", "Load Previous Game": "white", "Quit": "white"}
 menu_highlight_color = "green"
 

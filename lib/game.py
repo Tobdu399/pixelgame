@@ -83,11 +83,14 @@ class Player:
 
 
 class Gunman:
-    def __init__(self, x, y, danger_zone, images, health=100, is_alive=True):
+    def __init__(self, x, y, walk_speed, run_speed, images, danger_zone=400, health=100, is_alive=True):
         self.x = x
         self.y = y
         self.images = images
         self.angle  = 0
+
+        self.walk_speed = walk_speed
+        self.run_speed  = run_speed
 
         self.danger_zone     = danger_zone
         self.health          = health
@@ -193,7 +196,12 @@ class Gunman:
         if gunman_rect.collidepoint(misc.pygame.mouse.get_pos()):
             self.health -= 20
 
-    def move(self, speed=0.25):
+    def move(self):
+        if self.player_distance > 1.5*self.danger_zone:
+            speed = self.run_speed
+        else:
+            speed = self.walk_speed
+
         if not misc.MENU_OPEN:
             if self.player_distance >= self.danger_zone or not self.in_display:
                 if self.player_distance > 0:
@@ -327,9 +335,6 @@ def show_menu_options(event, options):
                 # Decide what happens when one of the menu options is clicked
                 if misc.START_MENU_OPEN:
                     if option == "Start New Game":
-                        misc.pygame.mixer.music.fadeout(500)                 # Fade out the start menu music
-                        misc.pygame.mixer.music.load(f"{misc.path}/music/music.wav")
-                        misc.pygame.mixer.music.play(-1, 0.0, fade_ms=2000)  # Fade in the game background music
                         game_setup()
                     elif option == "Load Previous Game":
                         load_previous_game()
@@ -340,10 +345,10 @@ def show_menu_options(event, options):
                 if misc.MENU_OPEN:
                     if option == "Close":
                         misc.MENU_OPEN = False
-                    elif option == "Restart":
+                    elif option == "Restart Game":
                         game_setup()
 
-                    if option == "Quit":
+                    if option == "Save And Quit":
                         save_game_progress()
                         exit_game()
 
@@ -383,7 +388,7 @@ def load_previous_game():
 def save_game_progress():
     gunmen_stats = []
     for gunman in misc.gunmen:
-        gunmen_stats.append((gunman.x, gunman.y, gunman.health, gunman.is_alive))
+        gunmen_stats.append((gunman.x, gunman.y, gunman.walk_speed, gunman.run_speed, gunman.danger_zone, gunman.health, gunman.is_alive))
 
     game_progress = {
         "score":            misc.SCORE,
@@ -416,35 +421,37 @@ def new_round():
 
         misc.gunmen.clear()
 
-        gm_danger_zone = 400
-
         # Create gunman
         for _ in range(misc.GUNMEN_AMOUNT):
             top_or_bottom = random.randint(0, 2)
             left_or_right = random.randint(0, 1)
 
-            if top_or_bottom == 2:
-                gm_y_pos = (misc.HEIGHT+100) + gm_danger_zone
-                gm_x_pos = random.randint(-100 - gm_danger_zone, (misc.WIDTH+100) + gm_danger_zone)
-            elif top_or_bottom == 1:
-                gm_y_pos = random.randint(-100 - gm_danger_zone, (misc.HEIGHT+100) + gm_danger_zone)
-                if left_or_right == 1:
-                    gm_x_pos = (misc.WIDTH+100) + gm_danger_zone
-                else:
-                    gm_x_pos = -100 - gm_danger_zone
-            else:
-                gm_y_pos = -100 - gm_danger_zone
-                gm_x_pos = random.randint(-100 - gm_danger_zone, (misc.WIDTH+100) + gm_danger_zone)
+            gm_danger_zone = random.randint(350, 450)
+            gm_walk_speed  = random.uniform(0.1, 0.3)
+            gm_run_speed   = random.uniform(0.4, 0.8)
 
-            misc.gunmen.append(Gunman(gm_x_pos, gm_y_pos, gm_danger_zone, misc.gunman_images))
+            # Randomize position for the gunman
+            spawn_distance = random.randint(0, 400)
+
+            if top_or_bottom == 2:
+                gm_y_pos = (misc.HEIGHT+100) + gm_danger_zone + spawn_distance
+                gm_x_pos = random.randint(-100 - gm_danger_zone - spawn_distance, (misc.WIDTH+100) + gm_danger_zone + spawn_distance)
+            elif top_or_bottom == 1:
+                gm_y_pos = random.randint(-100 - gm_danger_zone - spawn_distance, (misc.HEIGHT+100) + gm_danger_zone + spawn_distance)
+                if left_or_right == 1:
+                    gm_x_pos = (misc.WIDTH+100) + gm_danger_zone + spawn_distance
+                else:
+                    gm_x_pos = -100 - gm_danger_zone - spawn_distance
+            else:
+                gm_y_pos = -100 - gm_danger_zone - spawn_distance
+                gm_x_pos = random.randint(-100 - gm_danger_zone - spawn_distance, (misc.WIDTH+100) + gm_danger_zone + spawn_distance)
+
+            misc.gunmen.append(Gunman(gm_x_pos, gm_y_pos, gm_walk_speed, gm_run_speed, misc.gunman_images, gm_danger_zone))
 
 
 def exit_game():
-    misc.GAME_OPEN = False
     misc.pygame.mixer.music.stop()
-
-    misc.pygame.quit()
-    exit()
+    misc.GAME_OPEN = False
 
 
 def game_setup(*args):
@@ -455,6 +462,10 @@ def game_setup(*args):
 
     misc.START_MENU_OPEN = False
     misc.GAME_RUNNING = True
+
+    misc.pygame.mixer.music.fadeout(500)                 # Fade out the previous music
+    misc.pygame.mixer.music.load(f"{misc.path}/music/music.wav")
+    misc.pygame.mixer.music.play(-1, 0.0, fade_ms=2000)  # Fade in the game background music
 
     # Create new player
     player = Player(int(misc.WIDTH / 2), int(misc.HEIGHT / 2), misc.player_images)
@@ -474,12 +485,15 @@ def game_setup(*args):
 
             misc.gunmen.clear()
             for saved_gunman in game_progress["gunmen"]:
-                gm_x = saved_gunman[0]
-                gm_y = saved_gunman[1]
-                gm_health = saved_gunman[2]
-                gm_is_alive = saved_gunman[3]
+                gm_x           = saved_gunman[0]
+                gm_y           = saved_gunman[1]
+                gm_walk_speed  = saved_gunman[2]
+                gm_run_speed   = saved_gunman[3]
+                gm_danger_zone = saved_gunman[4]
+                gm_health      = saved_gunman[5]
+                gm_is_alive    = saved_gunman[6]
 
-                misc.gunmen.append(Gunman(gm_x, gm_y, 400, misc.gunman_images, gm_health, gm_is_alive))
+                misc.gunmen.append(Gunman(gm_x, gm_y, gm_walk_speed, gm_run_speed, misc.gunman_images, gm_danger_zone, gm_health, gm_is_alive))
 
             msg = message.Message("Game Loaded")
 
@@ -614,9 +628,9 @@ def fade():
             misc.FADE_ALPHA = 0
             misc.FADE_IN = False
 
-    fade_effect = misc.pygame.Surface((misc.WIDTH, misc.HEIGHT), misc.pygame.SRCALPHA)
-    fade_effect.fill((0, 0, 0, misc.FADE_ALPHA))
-    misc.display.blit(fade_effect, (0, 0))
+        fade_effect = misc.pygame.Surface((misc.WIDTH, misc.HEIGHT), misc.pygame.SRCALPHA)
+        fade_effect.fill((0, 0, 0, misc.FADE_ALPHA))
+        misc.display.blit(fade_effect, (0, 0))
 
 
 def main():
