@@ -1,5 +1,7 @@
 import math
 import random
+import os.path
+import pickle
 from lib import misc
 from lib import slider
 from lib import message
@@ -11,9 +13,8 @@ music_volume = slider.Slider(int(misc.WIDTH / 4) + 50, int(misc.HEIGHT / 2) + in
 slider.sliders.append(sfx_volume)
 slider.sliders.append(music_volume)
 
-# TODO: 1) Collision detection so that the gunmen wouldn't go on top of each other
+# TODO: 1) Collision detection so that the gunmen wouldn't go on top of each other (MAYBE!)
 # TODO: 2) Game ending
-# TODO: 3) Load previous game
 
 
 class Player:
@@ -82,15 +83,15 @@ class Player:
 
 
 class Gunman:
-    def __init__(self, x, y, danger_zone, images):
+    def __init__(self, x, y, danger_zone, images, health=100, is_alive=True):
         self.x = x
         self.y = y
         self.images = images
         self.angle  = 0
 
         self.danger_zone     = danger_zone
-        self.health          = 100
-        self.is_alive        = True
+        self.health          = health
+        self.is_alive        = is_alive
         self.player_distance = 0
 
         self.bullets_remaining = self.clip_size = 30
@@ -152,8 +153,12 @@ class Gunman:
                 health_bar_y = rotated_img_rect.y-15
                 health_bar_height = 7
 
-                misc.pygame.draw.rect(misc.display, "red", (health_bar_x, health_bar_y, 100, health_bar_height), border_radius=2)
-                misc.pygame.draw.rect(misc.display, "green", (health_bar_x, health_bar_y, self.health, health_bar_height), border_radius=2)
+                #    |     x      |      y      | width |    height     |
+                bg = (health_bar_x, health_bar_y, 100, health_bar_height)          # Health bar background
+                fg = (health_bar_x, health_bar_y, self.health, health_bar_height)  # Health bar foreground
+
+                misc.pygame.draw.rect(misc.display, "red", bg, border_radius=2)
+                misc.pygame.draw.rect(misc.display, "green", fg, border_radius=2)
         else:
             # If the gunman died, increase the player's score and its multiplier
             if self.is_alive:
@@ -252,8 +257,9 @@ def debug_screen():
 
 def menu():
     if misc.MENU_OPEN:
-        # Using misc.pygame.draw.rect for the menu borders because misc.pygame.Surface doesn't have the border radius setting.
-        # Then positioning the misc.pygame.Surface slightly inside the borders so that the corners wouldn't show
+        # Using misc.pygame.draw.rect for the menu borders because misc.pygame.Surface doesn't have the border
+        # radius setting. Then positioning the misc.pygame.Surface slightly inside the borders so that the corners
+        # wouldn't show
 
         # Menu border
         x, y                 = int(misc.WIDTH / 4), int(misc.HEIGHT / 4)
@@ -325,6 +331,11 @@ def show_menu_options(event, options):
                         misc.pygame.mixer.music.load(f"{misc.path}/music/music.wav")
                         misc.pygame.mixer.music.play(-1, 0.0, fade_ms=2000)  # Fade in the game background music
                         game_setup()
+                    elif option == "Load Previous Game":
+                        load_previous_game()
+
+                    if option == "Quit":
+                        exit_game()
 
                 if misc.MENU_OPEN:
                     if option == "Close":
@@ -332,8 +343,62 @@ def show_menu_options(event, options):
                     elif option == "Restart":
                         game_setup()
 
-                if option == "Quit":
-                    exit_game()
+                    if option == "Quit":
+                        save_game_progress()
+                        exit_game()
+
+
+def load_previous_game():
+    # These options should be found from the save file
+    required_options = ["score", "score multiplier", "round",
+                        "player position", "ammo", "health",
+                        "gunmen", "gunmen amount"]
+
+    if os.path.isfile(f"{misc.path}/data.dat"):
+        save_file_verified = True
+        save_file = open(f"{misc.path}/data.dat", "rb")
+
+        try:
+            game_progress = pickle.load(save_file)
+            save_file.close()
+
+            if isinstance(game_progress, dict):
+                for required_option in required_options:
+                    if required_option not in game_progress.keys():
+                        save_file_verified = False
+            else:
+                save_file_verified = False
+
+            if save_file_verified:
+                game_setup(game_progress)
+                print("\nGame loaded successfully!")
+
+        except:
+            # If an exception occurs, the save file must be corrupted
+            print("\nUnable to load game! The save file of the previous game might be corrupted.")
+    else:
+        print("\nNo previous game found!")
+
+
+def save_game_progress():
+    gunmen_stats = []
+    for gunman in misc.gunmen:
+        gunmen_stats.append((gunman.x, gunman.y, gunman.health, gunman.is_alive))
+
+    game_progress = {
+        "score":            misc.SCORE,
+        "score multiplier": misc.SCORE_MULTIPLIER,
+        "round":            misc.ROUND,
+        "player position":  (player.x, player.y),
+        "ammo":             player.bullets_remaining,
+        "health":           player.health,
+        "gunmen":           gunmen_stats,
+        "gunmen amount":    misc.GUNMEN_AMOUNT,
+    }
+
+    save_file = open(f"{misc.path}/data.dat", "wb")
+    pickle.dump(game_progress, save_file)
+    save_file.close()
 
 
 def new_round():
@@ -382,8 +447,8 @@ def exit_game():
     exit()
 
 
-def game_setup():
-    global player
+def game_setup(*args):
+    global player, msg
 
     misc.FADE_ALPHA = 255
     misc.FADE_IN    = True
@@ -391,22 +456,47 @@ def game_setup():
     misc.START_MENU_OPEN = False
     misc.GAME_RUNNING = True
 
-    # Spawn gunmen
-    misc.SCORE = misc.ROUND = misc.GUNMEN_AMOUNT = 0
-    misc.SCORE_MULTIPLIER   = 1
-    misc.gunmen.clear()
-    new_round()
-
     # Create new player
-    player = Player(int(misc.WIDTH/2), int(misc.HEIGHT/2), misc.player_images)
+    player = Player(int(misc.WIDTH / 2), int(misc.HEIGHT / 2), misc.player_images)
 
-    # Close the menu if it is open when starting the game
-    if misc.MENU_OPEN:
-        misc.MENU_OPEN = False
+    # Check if the previous game is trying to be loaded and if so, set the stats as they were in the previous game
+    if len(args) > 0:
+        if isinstance(args[0], dict):
+            game_progress = args[0]
+
+            misc.SCORE               = game_progress["score"]
+            misc.SCORE_MULTIPLIER    = game_progress["score multiplier"]
+            misc.ROUND               = game_progress["round"]
+            misc.GUNMEN_AMOUNT       = game_progress["gunmen amount"]
+            player.x, player.y       = game_progress["player position"]
+            player.health            = game_progress["health"]
+            player.bullets_remaining = game_progress["ammo"]
+
+            misc.gunmen.clear()
+            for saved_gunman in game_progress["gunmen"]:
+                gm_x = saved_gunman[0]
+                gm_y = saved_gunman[1]
+                gm_health = saved_gunman[2]
+                gm_is_alive = saved_gunman[3]
+
+                misc.gunmen.append(Gunman(gm_x, gm_y, 400, misc.gunman_images, gm_health, gm_is_alive))
+
+            msg = message.Message("Game Loaded")
+
+    else:
+        # Spawn gunmen
+        misc.SCORE = misc.ROUND = misc.GUNMEN_AMOUNT = 0
+        misc.SCORE_MULTIPLIER   = 1
+        misc.gunmen.clear()
+        new_round()
+
+        # Close the menu if it is open when starting the game
+        if misc.MENU_OPEN:
+            misc.MENU_OPEN = False
 
     # If the mouse's x position is set to the same position as the player's, the player won't turn
     # towards the cursor until it moves
-    misc.pygame.mouse.set_pos((int(misc.WIDTH/2)+1, int(misc.HEIGHT/2)-100))
+    misc.pygame.mouse.set_pos((int(player.x)+1, int(player.y)-100))
 
 
 def draw_background():
@@ -451,7 +541,9 @@ def update_sliders(event):
 def show_player_status():
     # Health
     health_bar_width, health_bar_height = 250, 20
-    health_remaining = int(player.max_health * (health_bar_width / player.max_health)) - int((player.max_health - player.health) * (health_bar_width / player.max_health))
+    health_remaining = int(player.max_health * (health_bar_width / player.max_health)) - \
+                       int((player.max_health - player.health) * (health_bar_width / player.max_health))
+
     health_x = misc.WIDTH - health_bar_width-20
     health_y = 20
 

@@ -1,5 +1,5 @@
 # SETUP -----------------------------
-from lib.setup import install_modules
+from lib.setup.setup import install_modules
 install_modules()
 
 # START GAME ------------------------

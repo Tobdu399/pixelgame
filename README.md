@@ -8,10 +8,8 @@ type in your console `python __main__.pyw` in the game folder
 
 ### Coming Soon
 - [ ] Game ending
-- [ ] Load previous game
 
 ### Recently Added
-- [x] Spawn gunmen in the borders of the display
-- [x] Waves and Score counting
 - [x] Fade effect
 - [x] Start menu
+- [x] Load previous game
