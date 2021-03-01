@@ -3,6 +3,7 @@
 ---
 
 ###Installation
+
 For an automatical installation, please use [pixelgame_installer](https://github.com/Tobdu399/pixelgame_installer.git).
 It will also create an executable stand-alone `.exe` file of the game
 
