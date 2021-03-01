@@ -47,6 +47,9 @@ menu_highlight_color = "green"
 
 # Images
 # NOTE: Converting images to alpha increases the game performance significantly
+icon = pygame.image.load(f"{path}/pictures/display/icon.png").convert_alpha(display)
+pygame.display.set_icon(icon)
+
 background_img = pygame.image.load(f"{path}/pictures/display/grass.png").convert_alpha(display)
 background_img_rect = background_img.get_rect()
 
