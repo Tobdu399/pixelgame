@@ -359,9 +359,9 @@ def load_previous_game():
                         "player position", "ammo", "health",
                         "gunmen", "gunmen amount"]
 
-    if os.path.isfile(f"{misc.path}/data.dat"):
+    if os.path.isfile(f"savegame.pkl"):
         save_file_verified = True
-        save_file = open(f"{misc.path}/data.dat", "rb")
+        save_file = open(f"savegame.pkl", "rb")
 
         try:
             game_progress = pickle.load(save_file)
@@ -401,7 +401,7 @@ def save_game_progress():
         "gunmen amount":    misc.GUNMEN_AMOUNT,
     }
 
-    save_file = open(f"{misc.path}/data.dat", "wb")
+    save_file = open(f"savegame.pkl", "wb")
     pickle.dump(game_progress, save_file)
     save_file.close()
 
