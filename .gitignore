@@ -1,3 +1,4 @@
 .idea/
 __pycache__/
 lib/data.dat
+savegame.pkl
